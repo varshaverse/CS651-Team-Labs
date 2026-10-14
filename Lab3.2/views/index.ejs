@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title><%= title %></title>
+</head>
+
+<body>
+  <h1>Customer Information</h1>
+
+  <!-- Traditional HTML form from Lab N3.1 -->
+  <h2>Traditional HTML Form</h2>
+
+  <form action="/readCustomerInfoAndRespond" method="POST">
+    <label for="formName">Name:</label>
+    <input
+      type="text"
+      id="formName"
+      name="name"
+      required
+    >
+
+    <br><br>
+
+    <label for="formEmail">Email:</label>
+    <input
+      type="email"
+      id="formEmail"
+      name="email"
+      required
+    >
+
+    <br><br>
+
+    <button type="submit">
+      Submit Traditional Form
+    </button>
+  </form>
+
+  <hr>
+
+  <!-- REST/JSON form for Lab N3.2 -->
+  <h2>REST/JSON Form</h2>
+
+  <label for="apiName">Name:</label>
+  <input
+    type="text"
+    id="apiName"
+    required
+  >
+
+  <br><br>
+
+  <label for="apiEmail">Email:</label>
+  <input
+    type="email"
+    id="apiEmail"
+    required
+  >
+
+  <br><br>
+
+  <button
+    type="button"
+    id="submitApiButton"
+  >
+    Submit Using REST API
+  </button>
+
+  <!-- REST API response will appear here -->
+  <div id="result"></div>
+
+  <script>
+    document
+      .getElementById("submitApiButton")
+      .addEventListener("click", async function () {
+        var name = document.getElementById("apiName").value;
+        var email = document.getElementById("apiEmail").value;
+        var result = document.getElementById("result");
+
+        if (name === "" || email === "") {
+          result.innerHTML =
+            "<p>Please enter both your name and email.</p>";
+          return;
+        }
+
+        try {
+          var response = await fetch("/api/customer", {
+            method: "POST",
+
+            headers: {
+              "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+              name: name,
+              email: email
+            })
+          });
+
+          var data = await response.json();
+
+          result.innerHTML =
+            "<h3>REST API Response</h3>" +
+            "<p>" + data.message + "</p>" +
+            "<p>Email: " + data.email + "</p>";
+        } catch (error) {
+          result.innerHTML =
+            "<p>There was an error sending the request.</p>";
+
+          console.error(error);
+        }
+      });
+  </script>
+</body>
+</html>
