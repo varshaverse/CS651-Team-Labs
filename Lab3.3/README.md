@@ -1,5 +1,5 @@
 # CS651-Team-Labs
-# Deployment Steps: SmartSpeechCoach Backend to Google Cloud Run
+# Deployment Steps- SmartSpeechCoach Backend to Google Cloud Run
 
 ## Project details
 - Google Cloud project: `group3-smartspeech-2026`
