@@ -24,7 +24,7 @@ const serverUrl = import.meta.env.PROD
   : "http://localhost:3001";
 ```
 
-Keep the API request as:
+Keep the API request as follows:
 
 ```javascript
 const response = await fetch(`${serverUrl}/api/askanything`, {
