@@ -25,7 +25,7 @@ Each lab has its own folder containing the source code and a dedicated `README.m
 
 ## Lab Exercises
 
-### Lab N3.1 – Node.js, Express, Git, and Google Cloud Run
+### [Lab N3.1](https://github.com/varshaverse/CS651-Team-Labs/tree/main/Lab3.1) – Node.js, Express, Git, and Google Cloud Run
 
 This lab focuses on setting up a development environment and creating a basic Node.js and Express application.
 
@@ -41,7 +41,7 @@ This lab focuses on setting up a development environment and creating a basic No
 
 **Documentation:** Refer to the `README.md` inside the Lab N3.1 folder.
 
-### Lab N3.2 – HTML Forms and REST/JSON APIs
+### [Lab N3.2](https://github.com/varshaverse/CS651-Team-Labs/tree/main/Lab3.2) – HTML Forms and REST/JSON APIs
 
 This lab explores how HTML forms interact with backend services and how applications exchange information using REST APIs and JSON.
 
@@ -55,7 +55,7 @@ This lab explores how HTML forms interact with backend services and how applicat
 
 **Documentation:** Refer to the `README.md` inside the Lab N3.2 folder.
 
-### Lab N3.3 – AI-Enabled Full-Stack Web Application
+### [Lab N3.3](https://github.com/varshaverse/CS651-Team-Labs/tree/main/Lab3.3) – AI-Enabled Full-Stack Web Application
 
 This lab extends a Node.js and Express backend with AI functionality using the Google Gemini API.
 
@@ -72,7 +72,7 @@ This lab extends a Node.js and Express backend with AI functionality using the G
 
 **Documentation:** Refer to the `README.md` inside the Lab N3.3 folder.
 
-### Lab N3.4 – AWS Elastic Beanstalk Deployment
+### [Lab N3.4](https://github.com/varshaverse/CS651-Team-Labs/tree/main/Lab3.4) – AWS Elastic Beanstalk Deployment
 
 This lab deploys the backend developed in Lab N3.3 to AWS Elastic Beanstalk and compares it with Google Cloud Run.
 
