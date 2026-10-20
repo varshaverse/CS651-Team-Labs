@@ -6,9 +6,9 @@
 - Region: `us-west1`
 - Model: `gemini-3.5-flash-lite`
 - Backend Cloud Run service: `smartspeechcoach-backend`
-- Backend URL: `https://smartspeechcoach-backend-5bzd2odxnq-uw.a.run.app/`
+- Backend URL: `https://smartspeechcoach-backend-693288299900.us-west1.run.app`
 - Frontend Cloud Run service: `smartspeechcoach-frontend`
-- Frontend URL: `https://smartspeechcoach-frontend-5bzd2odxnq.uw.a.run.app`
+- Frontend URL: `https://smartspeechcoach-frontend-693288299900.us-west1.run.app`
 
 ## 1. Set up Google Cloud
 ```bash
