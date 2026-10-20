@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lab 3.2 - HTML Form vs REST</title>
+  <link rel="stylesheet" href="/stylesheets/style.css">
+</head>
+<body>
+  <h1>Lab 3.2: HTML Form vs REST/JSON</h1>
+
+  <h2>Part A - Traditional Form (page reloads)</h2>
+  <form action="/readCustomerInfoAndRespond" method="POST">
+    <input type="text" name="name" placeholder="Name" required>
+    <input type="email" name="email" placeholder="Email" required>
+    <button type="submit">Submit (Traditional)</button>
+  </form>
+
+  <hr>
+
+  <h2>Part B - REST with fetch() (no reload)</h2>
+  <input type="text" id="name" placeholder="Name">
+  <input type="email" id="email" placeholder="Email">
+  <button type="button" id="submitBtn">Submit (fetch)</button>
+  <div id="result"></div>
+
+  <script>
+    // This is the fetch() call. It runs in the browser and calls the Express route.
+    document.getElementById("submitBtn").addEventListener("click", async () => {
+      const response = await fetch("/api/customer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: document.getElementById("name").value,
+          email: document.getElementById("email").value
+        })
+      });
+      const data = await response.json();
+      document.getElementById("result").innerHTML = data.message + "<br>" + data.email;
+    });
+  </script>
+</body>
+</html>
