@@ -18,7 +18,7 @@ const allowedOrigins = process.env.allowedOrigins
 
 // Enable CORS (Cross-Origin Resource Sharing - front-end and backend on different servers) only for the frontend URLs in allowedOrigins.
 // This includes local development and the deployed Firebase frontend.
-app.use(cors({ origin: allowedOrigins }));
+app.use(cors());
 
 // Tell Express to parse incoming JSON request bodies.
 // This lets us read request.body.message in the /api/askanything route.
