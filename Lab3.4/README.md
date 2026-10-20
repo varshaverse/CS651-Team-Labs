@@ -1,5 +1,15 @@
 # Lab 3.4: Deploy the Backend and Frontend to AWS
 
+## Project details
+- AWS region: `us-east-1` (US East, N. Virginia)
+- Elastic Beanstalk application: `smartspeech-backend`
+- Elastic Beanstalk environment: `Smartspeech-backend-env-1`
+- Platform: Node.js 24 on 64bit Amazon Linux 2023
+- Backend URL: `http://smartspeech-backend-env-1.eba-hmqfvpqk.us-east-1.elasticbeanstalk.com`
+- S3 bucket (frontend): `smartspeech-frontend`
+- Frontend URL: `http://smartspeech-frontend.s3-website-us-east-1.amazonaws.com`
+- Model: `gemini-3.5-flash-lite`
+
 **Live frontend URL:** `http://smartspeech-frontend.s3-website-us-east-1.amazonaws.com`
 
 This document explains how the Lab 3.3 backend was deployed to AWS Elastic Beanstalk and how the frontend was deployed to Amazon S3. The backend runs on Elastic Beanstalk, and the frontend runs as a static website on S3 and calls the backend with `fetch`.
@@ -51,7 +61,7 @@ zip -r ../smartspeech-backend.zip server.js package.json package-lock.json
 unzip -l ../smartspeech-backend.zip
 ```
 
-The listing must show `package.json` and `server.js` with no folder name in front of them. A path such as `backend/package.json` causes the deployment error described in Section 8. Do not include `.env` files or `node_modules`.
+The listing must show `package.json` and `server.js` with no folder name in front of them. A path such as `backend/package.json` causes the deployment error described in Section 9. Do not include `.env` files or `node_modules`.
 
 Also confirm `server.js` has only one CORS block:
 
@@ -91,8 +101,6 @@ Region: **US East (N. Virginia), `us-east-1`**
 5. Click **Create**, then wait until the Events tab shows "Environment successfully launched" and the health shows **Ok**.
 
 ## 5. Test the backend
-
-Domain: `smartspeech-backend-env-1.eba-hmqfvpqk.us-east-1.elasticbeanstalk.com`
 
 ```bash
 curl -i http://smartspeech-backend-env-1.eba-hmqfvpqk.us-east-1.elasticbeanstalk.com/api/health
@@ -261,9 +269,9 @@ Note: The S3 site uses plain HTTP, and so does the Elastic Beanstalk backend, so
 | Area | Cloud Run | Elastic Beanstalk and S3 |
 |---|---|---|
 | Deploy backend | One command: `gcloud run deploy --source .` | Create app and environment, upload ZIP |
-| Deploy frontend | Usually hosted with the backend or Firebase | Build, then upload `dist` to an S3 bucket |
+| Deploy frontend | Container built from a Dockerfile, deployed with the same command | Build, then upload `dist` to an S3 bucket |
 | Environment variables | `--env-vars-file` at deploy time | Environment properties in the console |
-| Build | Buildpacks, automatic | Installs packages on an EC2 instance |
+| Build | Buildpacks or Dockerfile, automatic | Installs packages on an EC2 instance |
 | Scaling | Scales to zero when idle | Runs continuously in single-instance mode |
 | Health checks | Automatic | Default checks `/`, which this app does not serve |
 | HTTPS | Included automatically | Plain HTTP by default |
