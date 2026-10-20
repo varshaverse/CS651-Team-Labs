@@ -1,200 +1,124 @@
-# CS651-Team-Labs
-# Deployment Steps: SmartSpeechCoach to Google Cloud Run (Backend and Frontend)
+# Lab 3.4: Deploy the Backend and Frontend to AWS
 
 ## Project details
-- Google Cloud project: `group3-smartspeech-2026`
-- Region: `us-west1`
+- AWS region: `us-east-1` (US East, N. Virginia)
+- Elastic Beanstalk application: `smartspeech-backend`
+- Elastic Beanstalk environment: `Smartspeech-backend-env-1`
+- Platform: Node.js 24 on 64bit Amazon Linux 2023
+- Backend URL: `http://smartspeech-backend-env-1.eba-hmqfvpqk.us-east-1.elasticbeanstalk.com`
+- S3 bucket (frontend): `smartspeech-frontend`
+- Frontend URL: `http://smartspeech-frontend.s3-website-us-east-1.amazonaws.com`
 - Model: `gemini-3.5-flash-lite`
-- Backend Cloud Run service: `smartspeechcoach-backend`
-- Backend URL: `https://smartspeechcoach-backend-5bzd2odxnq-uw.a.run.app/`
-- Frontend Cloud Run service: `smartspeechcoach-frontend`
-- Frontend URL: `https://smartspeechcoach-frontend-5bzd2odxnq.uw.a.run.app`
 
-## 1. Set up Google Cloud
-```bash
-gcloud auth login
-gcloud projects create group3-smartspeech-2026 --name="SmartSpeechCoach"
-gcloud config set project group3-smartspeech-2026
-gcloud billing accounts list
-gcloud billing projects link group3-smartspeech-2026 --billing-account=BILLING_ACCOUNT_ID
-gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com generativelanguage.googleapis.com
-```
-Skip `projects create` if the project already exists.
+**Live frontend URL:** `http://smartspeech-frontend.s3-website-us-east-1.amazonaws.com`
 
-## 2. Configure the backend
-Create `backend/.env.cloudrun`. Every line must use `NAME: "value"` (YAML format):
+This document explains how the Lab 3.3 backend was deployed to AWS Elastic Beanstalk and how the frontend was deployed to Amazon S3. The backend runs on Elastic Beanstalk, and the frontend runs as a static website on S3 and calls the backend with `fetch`.
 
-```yaml
-GEMINI_API_KEY: "YOUR_GEMINI_API_KEY"
-geminiAskAnythingModel: "gemini-3.5-flash-lite"
-askAnythingPrompt: "You are going to answer questions about Smart Speech Coach..."
-allowedOrigins: "http://localhost:5173,http://127.0.0.1:5173,https://smartspeechcoach.web.app,https://smartspeechcoach-frontend-693288299900.us-west1.run.app"
-```
+## 1. Project structure
 
-The key is stored only in this file. `.env.cloudrun` is git-ignored and must never be committed.
-
-## 3. Deploy the backend
-From the `backend` folder:
-```bash
-cd backend
-gcloud run deploy smartspeechcoach-backend \
-  --source . \
-  --region us-west1 \
-  --allow-unauthenticated \
-  --env-vars-file .env.cloudrun
-```
-
-Make sure `backend/server.js` has only one `app.use(cors(` block, and that it uses `origin: allowedOrigins`:
-```bash
-grep -n "app.use(cors" server.js
-```
-
-## 4. Test the backend
-```bash
-curl https://smartspeechcoach-backend-693288299900.us-west1.run.app/api/health
-
-curl -i -X OPTIONS \
-  -H "Origin: https://smartspeechcoach-frontend-693288299900.us-west1.run.app" \
-  -H "Access-Control-Request-Method: POST" \
-  https://smartspeechcoach-backend-693288299900.us-west1.run.app/api/askanything
-
-curl -i --max-time 60 -X POST https://smartspeechcoach-backend-693288299900.us-west1.run.app/api/askanything \
-  -H "Content-Type: application/json" \
-  -d '{"message":"What is Smart Speech Coach?"}'
-```
-- `/api/health` returns `{"status":"ok"}`.
-- The OPTIONS request returns `Access-Control-Allow-Origin: https://smartspeechcoach-frontend-693288299900.us-west1.run.app`.
-- `/api/askanything` returns `{"answer":"..."}`.
-
-## 5. Deploy the frontend to Cloud Run
-
-The frontend is a Vite app. It's built into static files and served by a small Express server in a container.
-
-### 5.1 Add the web server
-From the `frontend` folder:
-```bash
-cd frontend
-npm install express
-```
-
-Create `frontend/serve.js`:
-```js
-import express from 'express';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const app = express();
-const port = process.env.PORT || 8080;
-
-app.use(express.static(path.join(__dirname, 'dist')));
-
-app.use((req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
-
-app.listen(port, () => {
-  console.log(`Frontend running on port ${port}`);
-});
-```
-
-Confirm `frontend/package.json` contains `"type": "module"` and `"express"` under `dependencies`.
-
-### 5.2 Create the Dockerfile
-Create `frontend/Dockerfile`:
-```dockerfile
-FROM node:24-alpine
-
-WORKDIR /app
-
-ENV VITE_SERVER_REMOTE=Y
-ENV VITE_SERVER_URL_REMOTE=https://smartspeechcoach-backend-693288299900.us-west1.run.app
-
-COPY package*.json ./
-RUN npm install
-
-COPY . .
-RUN npm run build
-
-ENV NODE_ENV=production
-CMD ["node", "serve.js"]
-```
-
-### 5.3 Create the .dockerignore file
-Create `frontend/.dockerignore`:
 ```text
-node_modules
-dist
-.env
-.env.*
+Lab3.4/
+├── frontend/
+└── backend/
+    ├── server.js
+    ├── package.json
+    └── package-lock.json
 ```
 
-### 5.4 Deploy
-```bash
-cd frontend
-gcloud run deploy smartspeechcoach-frontend \
-  --source . \
-  --region us-west1 \
-  --allow-unauthenticated
-```
+The Elastic Beanstalk ZIP is created from the `backend` folder. Its `package.json` and `server.js` must be at the top level of the ZIP.
 
-Frontend URL: `https://smartspeechcoach-frontend-693288299900.us-west1.run.app`
+## 2. Frontend configuration
 
-### 5.5 Allow the frontend on the backend
-The backend's `allowedOrigins` environment variable must include the frontend URL. Set it on the Cloud Run service (this overrides the default list in `server.js`):
-```bash
-gcloud run services update smartspeechcoach-backend \
-  --region us-west1 \
-  --update-env-vars "^@^allowedOrigins=http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,https://smartspeechcoach.web.app,https://smartspeechcoach-frontend-693288299900.us-west1.run.app"
-```
+The frontend reads the backend URL from `frontend/.env`:
 
-Also keep `.env.cloudrun` in sync with this value. Otherwise a later `--env-vars-file` deploy resets it.
-
-Confirm the header:
-```bash
-curl -i -X OPTIONS \
-  -H "Origin: https://smartspeechcoach-frontend-693288299900.us-west1.run.app" \
-  -H "Access-Control-Request-Method: POST" \
-  https://smartspeechcoach-backend-693288299900.us-west1.run.app/api/askanything
-```
-The output must include `access-control-allow-origin: https://smartspeechcoach-frontend-693288299900.us-west1.run.app`.
-
-## 6. Run the frontend locally (optional)
-Create `frontend/.env`:
-```
+```text
 VITE_SERVER_REMOTE=Y
-VITE_SERVER_URL_REMOTE=https://smartspeechcoach-backend-693288299900.us-west1.run.app
+VITE_SERVER_URL_REMOTE=http://smartspeech-backend-env-1.eba-hmqfvpqk.us-east-1.elasticbeanstalk.com
 VITE_SERVER_URL_LOCAL=http://localhost:3001
 ```
+
+`VITE_SERVER_REMOTE=Y` selects the remote URL. `App.jsx` sends the request to `${serverUrl}/api/askanything`.
+
+Restart the frontend after changing `.env`:
 
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Open `http://localhost:5173`, submit a question, and confirm in DevTools → Network that the request goes to the Cloud Run backend and returns 200.
 
-## 7. Test the deployed app
-1. Open `https://smartspeechcoach-frontend-693288299900.us-west1.run.app`.
-2. Hard-refresh with **Cmd + Shift + R**.
-3. Send a question. The answer should appear.
-4. In DevTools → Network, the `askanything` request should go to `https://smartspeechcoach-backend-693288299900.us-west1.run.app` and return 200.
+Open `http://localhost:5173`, submit a question, and confirm in DevTools → Network that the POST goes to the Elastic Beanstalk URL and returns 200.
 
-## 8. View logs
+## 3. Create the deployment ZIP
+
+From inside the `backend` folder, so the files sit at the top level:
+
 ```bash
-gcloud run services logs read smartspeechcoach-backend --region us-west1 --limit 50
-gcloud run services logs read smartspeechcoach-frontend --region us-west1 --limit 50
+cd backend
+npm install
+rm -f ../smartspeech-backend.zip
+zip -r ../smartspeech-backend.zip server.js package.json package-lock.json
+unzip -l ../smartspeech-backend.zip
 ```
-Or open the Cloud Run console, select the service, then the **Logs** tab.
 
-## 9. Redeploy after changes
-- **Backend:** run the deploy command from step 3.
-- **Frontend:** rebuild happens inside the container, so run the command from step 5.4 again. If the backend URL changes, update the `VITE_SERVER_URL_REMOTE` line in the Dockerfile first.
+The listing must show `package.json` and `server.js` with no folder name in front of them. A path such as `backend/package.json` causes the deployment error described in Section 9. Do not include `.env` files or `node_modules`.
 
-## Troubleshooting
-- **Build fails at `npm ci`:** `package-lock.json` is out of sync with `package.json`. The Dockerfile uses `npm install` to avoid this.
-- **Build fails with "unknown instruction":** a Dockerfile line is missing its `RUN`, `ENV`, or `COPY` keyword, or has a typo. Dockerfile comments start with `#`, not `//`.
-- **Container failed to start on port 8080:** check the logs. `Cannot find package 'express'` means `express` isn't in `package.json`. Run `npm install express` in the `frontend` folder and deploy again.
-- **500 error, "could not answer right now":** check the logs for `Gemini request failed:`. A `not_found` error means the model name is wrong. A 401 means the key is invalid.
-- **CORS error in the browser:** the backend's `allowedOrigins` environment variable is missing the frontend URL. Update it with step 5.5. A code change in `server.js` alone doesn't take effect while that variable is set.
-- **Invalid YAML when deploying:** every line in `.env.cloudrun` must use `NAME: "value"`, not `NAME=value`.
+Also confirm `server.js` has only one CORS block:
+
+```bash
+unzip -p ../smartspeech-backend.zip server.js | grep -n "app.use(cors"
+```
+
+The output must show one line.
+
+## 4. Create the Elastic Beanstalk application and environment
+
+Region: **US East (N. Virginia), `us-east-1`**
+
+1. Open **Elastic Beanstalk → Create application**.
+   - Application name: `smartspeech-backend`
+2. Inside the application, click **Create environment**.
+   - Environment tier: **Web server environment**
+   - Environment name: `Smartspeech-backend-env-1`
+   - Platform: **Node.js**, Node.js 24 running on 64bit Amazon Linux 2023
+   - Application code: **Upload your code**, then upload `smartspeech-backend.zip` with version label `v1`
+   - Capacity: **Single instance**
+3. Under **Environment properties**, add:
+
+   | Name | Value |
+   |---|---|
+   | `GEMINI_API_KEY` | Your Gemini API key |
+   | `geminiAskAnythingModel` | `gemini-3.5-flash-lite` |
+   | `allowedOrigins` | `http://localhost:5173,http://127.0.0.1:5173,http://smartspeech-frontend.s3-website-us-east-1.amazonaws.com` |
+   | `askAnythingPrompt` | The Ask Anything prompt text, without the outer quotes |
+
+   Do not add `PORT`. Elastic Beanstalk sets it automatically.
+
+4. Under **Service access**, choose **Use another role**:
+   - Service role: `LabRole`
+   - EC2 instance profile: `LabInstanceProfile`
+
+5. Click **Create**, then wait until the Events tab shows "Environment successfully launched" and the health shows **Ok**.
+
+## 5. Test the backend
+
+```bash
+curl -i http://smartspeech-backend-env-1.eba-hmqfvpqk.us-east-1.elasticbeanstalk.com/api/health
+
+curl -i -X OPTIONS \
+  -H "Origin: http://smartspeech-frontend.s3-website-us-east-1.amazonaws.com" \
+  -H "Access-Control-Request-Method: POST" \
+  http://smartspeech-backend-env-1.eba-hmqfvpqk.us-east-1.elasticbeanstalk.com/api/askanything
+
+curl -i --max-time 60 -X POST \
+  http://smartspeech-backend-env-1.eba-hmqfvpqk.us-east-1.elasticbeanstalk.com/api/askanything \
+  -H "Content-Type: application/json" \
+  -H "Origin: http://smartspeech-frontend.s3-website-us-east-1.amazonaws.com" \
+  -d '{"message":"What is Smart Speech Coach?"}'
+```
+
+- `/api/health` returns `HTTP/1.1 200 OK` with `{"status":"ok"}`.
+- The OPTIONS request returns `Access-Control-Allow-Origin: http://smartspeech-frontend.s3-website-us-east-1.amazonaws.com`.
+- `/api/askanything` returns `HTTP/1.1 200 OK` with an `answer` field and the same `Access-Control-Allow-Origin` header.
+
+##
