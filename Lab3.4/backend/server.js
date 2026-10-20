@@ -14,7 +14,7 @@ const port = process.env.PORT || 3001;
 // Example: allowedOrigins=http://localhost:5173,http://127.0.0.1:5173
 const allowedOrigins = process.env.allowedOrigins
   ? process.env.allowedOrigins.split(',').map((origin) => origin.trim())
-  : ['http://localhost:5173', 'http://127.0.0.1:5173'];
+  : ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://smartspeech-frontend.s3-website-us-east-1.amazonaws.com'];
 
 // Enable CORS (Cross-Origin Resource Sharing - front-end and backend on different servers) only for the frontend URLs in allowedOrigins.
 // This includes local development and the deployed Firebase frontend.
