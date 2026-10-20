@@ -2,7 +2,7 @@
 
 ## Project Details
 
-- GitHub base repository: https://github.com/grewe/FormData
+- GitHub base repository: https://github.com/varshaverse/CS651-Team-Labs.git
 - Google Cloud project ID: `websystem-Lab-32`
 - Region: `us-central1`
 - Cloud Run service: `lab-n3-1`
@@ -168,7 +168,7 @@ Press **Control + C** in the terminal running `npm start`.
 ### Remove the Cloud Run service after the demonstration
 
 ```bash
-gcloud run services delete websystem \
+gcloud run services delete websystem-lab-32 \
   --region us-central1
 ```
 
