@@ -1,10 +1,8 @@
-# Lab 3.4 — Elastic Beanstalk Deployment Steps
+# Lab 3.4: Deploy the Backend to AWS Elastic Beanstalk
 
-This document explains how to prepare the full-stack application and deploy it to AWS Elastic Beanstalk.
+This document explains how the Lab 3.3 backend was deployed to AWS Elastic Beanstalk. The frontend runs locally and calls the deployed backend with `fetch`.
 
-## 1. Required project structure
-
-The project contains separate frontend and backend folders:
+## 1. Project structure
 
 ```text
 Lab3.4/
@@ -12,198 +10,136 @@ Lab3.4/
 └── backend/
 ```
 
-The Elastic Beanstalk ZIP must be created from the `backend` folder. The backend `package.json` must be directly at the top level of the ZIP.
+The Elastic Beanstalk ZIP is created from the `backend` folder. Its `package.json` and `server.js` must be at the top level of the ZIP.
 
-## 2. Update the frontend API path
+## 2. Frontend configuration
 
-In `frontend/src/App.jsx`, use an empty server URL after deployment:
-
-```javascript
-const serverUrl = import.meta.env.PROD
-  ? ""
-  : "http://localhost:3001";
-```
-
-Keep the API request as follows:
-
-```javascript
-const response = await fetch(`${serverUrl}/api/askanything`, {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({ message: question }),
-});
-```
-
-Local requests use:
+The frontend reads the backend URL from `frontend/.env`:
 
 ```text
-http://localhost:3001/api/askanything
+VITE_SERVER_REMOTE=Y
+VITE_SERVER_URL_REMOTE=http:http://smartspeech-backend-env-1.eba-hmqfvpqk.us-east-1.elasticbeanstalk.com
+VITE_SERVER_URL_LOCAL=http://localhost:3001
 ```
 
-After deployment, requests use the same Elastic Beanstalk domain:
+`VITE_SERVER_REMOTE=Y` selects the remote URL. `App.jsx` sends the request to `${serverUrl}/api/askanything`.
 
-```text
-/api/askanything
-```
-
-## 3. Configure the backend to serve React
-
-The `backend` folder should contain the built frontend in a `dist` folder:
-
-```text
-backend/
-├── dist/
-│   ├── index.html
-│   └── assets/
-├── package.json
-└── server.js
-```
-
-In the backend server file, import `path` and define `__dirname` if the project uses ES modules:
-
-```javascript
-import path from "path";
-import { fileURLToPath } from "url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-```
-
-Use the Elastic Beanstalk port and listen on all interfaces:
-
-```javascript
-const port = process.env.PORT || 8080;
-
-app.listen(port, "0.0.0.0", () => {
-  console.log(`Server running on port ${port}`);
-});
-```
-
-After the API routes, serve the React files:
-
-```javascript
-app.use(express.static(path.join(__dirname, "dist")));
-
-app.use((request, response, next) => {
-  if (request.method === "GET" && !request.path.startsWith("/api")) {
-    response.sendFile(path.join(__dirname, "dist", "index.html"));
-  } else {
-    next();
-  }
-});
-```
-
-Make sure the backend `package.json` includes the correct start command:
-
-```json
-"scripts": {
-  "start": "node server.js"
-}
-```
-
-Replace `server.js` if the backend entry file has a different name.
-
-## 4. Create the React `dist` folder
-
-From the project directory, build the frontend:
+Restart the frontend after changing `.env`:
 
 ```bash
 cd frontend
 npm install
-npm run build
+npm run dev
 ```
 
-This creates:
+Open `http://localhost:5173`, submit a question, and confirm in DevTools → Network that the POST goes to the Elastic Beanstalk URL and returns 200.
 
-```text
-frontend/dist/
-```
+## 3. Create the deployment ZIP
 
-Copy the generated `dist` folder into the backend folder. Replace the old `backend/dist` folder if it already exists:
-
-```text
-backend/dist/
-```
-
-The final backend folder must contain both `package.json` and `dist`.
-
-## 5. Create the deployment ZIP
-
-Create the ZIP from inside the `backend` folder:
+From inside the `backend` folder:
 
 ```bash
 cd backend
-zip -r ../Lab3.4-backend.zip . -x "node_modules/*" ".git/*"
+zip -r ../backend.zip . -x "node_modules/*" ".env*"
+unzip -l ../backend.zip | grep -E "package.json|server.js"
 ```
 
-Correct ZIP structure:
+The listing must show `package.json` and `server.js` with no folder name in front of them. A path such as `backend/package.json` causes the deployment error described in Section 8.
 
+## 4. Create the Elastic Beanstalk application and environment
+
+Region: **US East (N. Virginia), `us-east-1`**
+
+1. Open **Elastic Beanstalk → Create application**.
+   - Application name: `Smartspeech-backend`
+2. Inside the application, click **Create environment**.
+   - Environment tier: **Web server environment**
+   - Environment name: `Smartspeech-backend-env-1`
+   - Platform: **Node.js**, Node.js 24 running on 64bit Amazon Linux 2023
+   - Application code: **Local file**, then upload `backend.zip`
+   - Capacity: **Single instance**
+3. Under **Environment properties**, add:
+
+   | Name | Value |
+   |---|---|
+   | `GEMINI_API_KEY` | Your Gemini API key |
+   | `geminiAskAnythingModel` | `gemini-3.5-flash-lite` |
+   | `allowedOrigins` | `http://localhost:5173,http://127.0.0.1:5173,https://smartspeechcoach.web.app` |
+   | `askAnythingPrompt` | The Ask Anything prompt text, without the outer quotes |
+
+   Do not add `PORT`. Elastic Beanstalk sets it automatically.
+
+4. Under **Service access**, choose **Use another role**:
+   - Service role: `LabRole`
+   - EC2 instance profile: `LabInstanceProfile`
+
+5. Click **Create**, then wait until the Events tab shows "Environment successfully launched."
+
+## 5. Test the backend
+
+Replace `YOUR-EB-URL` with the domain shown on the environment page:
+
+```bash
+curl http://YOUR-EB-URL/api/health
+
+curl -i --max-time 60 -X POST http://YOUR-EB-URL/api/askanything \
+  -H "Content-Type: application/json" \
+  -d '{"message":"What is Smart Speech Coach?"}'
+```
+
+- `/api/health` returns `{"status":"ok"}`.
+- `/api/askanything` returns `HTTP/1.1 200 OK` with an `answer` field.
+
+## 6. Health check note
+
+The default Elastic Beanstalk health check requests `/`. The Express server does not serve that path, so a single-instance environment may show "1 health issue." The API routes work, as shown by the tests in Section 5. This is expected for this app.
+
+## 7. Clean up
+
+To stop charges after you finish:
+
+1. In Elastic Beanstalk, select the environment, then **Actions → Terminate environment**.
+2. In EC2, confirm the instance shows **Terminated**.
+3. In the Learner Lab, click **End Lab**.
+
+## 8. Issues encountered and solutions
+
+### Issue 1: "Instance deployment failed to generate a 'Procfile' for Node.js"
+
+**Error:**
 ```text
-Lab3.4-backend.zip
-├── package.json
-├── package-lock.json
-├── server.js
-├── dist/
-└── other backend files
+Instance deployment failed to generate a 'Procfile' for Node.js.
+Provide one of these files: 'package.json', 'server.js', or 'app.js'.
 ```
 
-The ZIP must not have an extra outer folder such as:
+**Cause:** The ZIP had its files inside a folder, so Elastic Beanstalk found no `package.json` at the top level.
 
-```text
-Lab3.4-backend.zip/backend/package.json
-```
+**Solution:** Rebuild the ZIP from inside `backend` and confirm the listing in Section 3.
 
-## 6. Deploy the ZIP to Elastic Beanstalk
+### Issue 2: Environment name can't be reused
 
-1. Open **AWS Console → Elastic Beanstalk**.
-2. Select the application and environment.
-3. Confirm the region is **US East (N. Virginia) / `us-east-1`**.
-4. Click **Upload and deploy**.
-5. Select `Lab3.4-backend.zip`.
-6. Enter a version label, such as:
+**Cause:** Names of terminated environments stay reserved for a while.
 
-   ```text
-   lab3.4-fullstack-v1
-   ```
+**Solution:** Use a new name, such as `Smartspeech-backend-env-1`.
 
-7. Click **Deploy**.
-8. Wait until the deployment finishes.
-9. Open the Elastic Beanstalk **Domain** URL.
+### Issue 3: Gemini returns an error or a 500
 
-## 7. Add backend environment variables
+**Cause:** The model name in `geminiAskAnythingModel` is unavailable for the key.
 
-Do not rely only on the local `backend/.env` file. Add these values in:
+**Solution:** Check the logs for `Gemini request failed:` in **Logs → Request logs**. Set `geminiAskAnythingModel` to a model your key supports, then update the environment property.
 
-**Elastic Beanstalk → Configuration → Software → Environment properties**
+## 9. Alternative: single-domain deployment (not used)
 
-```text
-PORT=8080
-GEMINI_API_KEY=your_gemini_api_key
-askAnythingPrompt=your_prompt
-geminiAskAnythingModel=your_model_name
-allowedOrigins=http://your-elastic-beanstalk-domain
-```
+It's also possible to build the React app, copy `frontend/dist` into `backend/dist`, and have Express serve it, so the frontend and API share one domain. This project did not use that approach, because the frontend runs locally and calls the Elastic Beanstalk backend.
 
-Keep `GEMINI_API_KEY` private. Do not place it in the frontend source code.
+## 10. Comparison: Cloud Run (Lab 3.3) vs. Elastic Beanstalk (Lab 3.4)
 
-## 8. Test the deployment
-
-Test the backend health endpoint:
-
-```text
-http://your-elastic-beanstalk-domain/api/health
-```
-
-Expected result:
-
-```json
-{
-  "status": "ok"
-}
-```
-
-Then open the main Elastic Beanstalk domain to test the React application.
-
-If deployment fails, open **Elastic Beanstalk → Logs → Request Logs → Last 100 Lines** and check for errors.
+| Area | Cloud Run | Elastic Beanstalk |
+|---|---|---|
+| Deploy | One command: `gcloud run deploy --source .` | Create app and environment, upload ZIP |
+| Environment variables | `--env-vars-file` at deploy time | Environment properties in the console |
+| Build | Buildpacks, automatic | Installs packages on an EC2 instance |
+| Scaling | Scales to zero when idle | Runs continuously in single-instance mode |
+| Health checks | Automatic | Default checks `/`, which this app does not serve |
+| Setup effort | Low | Higher: roles, ZIP layout, environment setup |
+| Cost | Pay per request | Pay while the instance runs |
