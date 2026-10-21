@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/stylesheets/style.css">
+</head>
+
+<body>
+  <nav class="navbar">
+    <div class="brand">ShoppingSite</div>
+  </nav>
+
+  <main class="page-container">
+
+    <section class="table-card">
+      <% if (customers.length === 0) { %>
+
+        <div class="empty-state">
+          <h2>No customers found</h2>
+          <p>Add a customer to see it displayed here.</p>
+          <a class="primary-link" href="/">Create Customer</a>
+        </div>
+
+      <% } else { %>
+
+        <div class="table-header">
+          <div>
+            <h2><%= title %></h2>
+            <p><%= customers.length %> customer records displayed</p>
+          </div>
+
+          <a class="primary-link" href="/">+ Add Customer</a>
+        </div>
+
+        <div class="page-links">
+          <a class="secondary-button" href="/customers">
+            View First 10 Customers
+          </a>
+
+          <a class="secondary-button" href="/all-customers">
+            View All Customers
+          </a>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Customer Name</th>
+                <th>Email Address</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <% customers.forEach(function(customer, index) { %>
+                <tr>
+                  <td>
+                    <span class="number-badge">
+                      <%= index + 1 %>
+                    </span>
+                  </td>
+
+                  <td class="customer-name">
+                    <%= customer.name %>
+                  </td>
+
+                  <td>
+                    <%= customer.email %>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+
+      <% } %>
+    </section>
+  </main>
+</body>
+</html>

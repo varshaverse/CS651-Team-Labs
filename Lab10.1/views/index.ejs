@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShoppingSite Customers</title>
+  <link rel="stylesheet" href="/stylesheets/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="brand">ShoppingSite</div>
+    <a href="/customers">View Customers</a>
+  </nav>
+
+  <main class="page-container">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Customer Management</p>
+        <h1>Create a New Customer</h1>
+        <p class="subtitle">
+          Add customer information to the ShoppingSite database.
+        </p>
+      </div>
+    </section>
+
+    <section class="form-card">
+      <h2>Customer Information</h2>
+      <p class="card-description">
+        Enter the customer's name and email address below.
+      </p>
+
+      <form action="/saveNewCustomer" method="post">
+        <label for="name">Full Name</label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          placeholder="Enter customer name"
+          required
+        >
+
+        <label for="email">Email Address</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          placeholder="customer@example.com"
+          required
+        >
+
+        <button type="submit">Save Customer</button>
+      </form>
+
+      <a class="secondary-button" href="/customers">
+        View First 10 Customers
+      </a>
+    </section>
+  </main>
+</body>
+</html>
